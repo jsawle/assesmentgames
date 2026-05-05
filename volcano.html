@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Label the Volcano</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --ink: #1a2332;
+      --muted: #5d6b7e;
+      --line: #d8dde5;
+      --accent: #2563eb;
+      --correct: #14a058;
+      --correct-bg: #e8f6ee;
+      --wrong: #d54545;
+      --wrong-bg: #fde8e8;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+    .header .subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .scoreboard {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .score-pill {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .score-pill .score-correct {
+      color: var(--correct);
+    }
+    .btn {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .btn:hover {
+      background: #eef0f4;
+      border-color: #b8c0cc;
+    }
+
+    /* DIAGRAM */
+    .diagram-wrap {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .diagram {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .diagram-bg {
+      pointer-events: none;
+    }
+    .drop-target {
+      fill: transparent;
+      stroke: transparent;
+      cursor: default;
+      pointer-events: all;
+    }
+    .drop-target.is-hover {
+      fill: rgba(37, 99, 235, 0.18);
+      stroke: var(--accent);
+      stroke-width: 4;
+      stroke-dasharray: 12 8;
+    }
+    .drop-target.is-correct-placed {
+      fill: rgba(20, 160, 88, 0.14);
+      stroke: var(--correct);
+      stroke-width: 4;
+      stroke-dasharray: none;
+    }
+
+    /* Placed labels rendered on the SVG */
+    .placed-label {
+      pointer-events: none;
+    }
+    .placed-label rect {
+      fill: rgba(255, 255, 255, 0.92);
+      stroke: var(--correct);
+      stroke-width: 2;
+      rx: 6;
+    }
+    .placed-label text {
+      font-family: inherit;
+      font-size: 26px;
+      font-weight: 600;
+      fill: var(--ink);
+      dominant-baseline: middle;
+      text-anchor: middle;
+    }
+    .placed-label line {
+      stroke: var(--correct);
+      stroke-width: 2.5;
+      stroke-dasharray: none;
+    }
+
+    /* LABEL BAY */
+    .bay {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .bay-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .bay-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .label {
+      background: #ffffff;
+      border: 1.5px solid var(--line);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: grab;
+      user-select: none;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+      touch-action: none;
+    }
+    .label:hover {
+      border-color: var(--accent);
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+    }
+    .label.is-dragging {
+      cursor: grabbing;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+      transform: scale(1.05);
+      z-index: 1000;
+      position: fixed;
+    }
+    .label.is-placed {
+      display: none;
+    }
+    .label.is-shake {
+      animation: shake 0.4s ease;
+      border-color: var(--wrong);
+      background: var(--wrong-bg);
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    .feedback {
+      min-height: 28px;
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      transition: color 0.2s ease;
+    }
+    .feedback.is-correct { color: var(--correct); font-weight: 500; }
+    .feedback.is-wrong { color: var(--wrong); font-weight: 500; }
+
+    .completion {
+      display: none;
+      background: var(--correct-bg);
+      border: 1px solid var(--correct);
+      color: var(--correct);
+      padding: 16px;
+      border-radius: 10px;
+      margin-top: 16px;
+      font-weight: 600;
+    }
+    .completion.is-visible { display: block; }
+
+    @media (max-width: 700px) {
+      .header { flex-direction: column; align-items: stretch; }
+      .scoreboard { justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div>
+        <h1>Label the Volcano</h1>
+        <div class="subtitle">Drag each label onto the matching part of the diagram.</div>
+      </div>
+      <div class="scoreboard">
+        <div class="score-pill">
+          <span class="score-correct" id="score-correct">0</span>
+          <span style="color: var(--muted);"> / </span>
+          <span id="score-total">7</span> correct
+        </div>
+        <button class="btn" id="reset-btn" type="button">Reset</button>
+      </div>
+    </header>
+
+    <!-- DIAGRAM -->
+    <section class="diagram-wrap">
+      <!-- viewBox matches the underlying image: 1536 x 1024.
+           All drop-target coordinates below are in this coordinate system. -->
+      <svg class="diagram" viewBox="0 0 1536 1024" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- Volcano illustration as a fixed background image inside the SVG -->
+        <image class="diagram-bg"
+               href="volcano-cross-section.png"
+               x="0" y="0" width="1536" height="1024"
+               preserveAspectRatio="xMidYMid slice" />
+
+        <!-- DROP TARGETS — invisible rectangles positioned over the image.
+             Each rect is the hit zone for one label.
+             Coordinates were chosen by reading the image at native resolution
+             and identifying the central area of each volcano part. -->
+
+        <!-- Ash cloud (top centre, the grey plume) -->
+        <ellipse class="drop-target" data-target="ash-cloud"
+                 cx="900" cy="120" rx="280" ry="90" />
+
+        <!-- Crater (the summit notch where the eruption emerges) -->
+        <rect class="drop-target" data-target="crater"
+              x="710" y="240" width="220" height="80" />
+
+        <!-- Main vent (the central red pipe through the cone) -->
+        <rect class="drop-target" data-target="main-vent"
+              x="755" y="370" width="120" height="320" />
+
+        <!-- Magma chamber (the bulbous orange reservoir at the bottom) -->
+        <ellipse class="drop-target" data-target="magma-chamber"
+                 cx="780" cy="900" rx="280" ry="80" />
+
+        <!-- Layers of lava and ash (the alternating diagonal bands on the cone flank).
+             Use the left flank where the bands are very visible. -->
+        <polygon class="drop-target" data-target="layers"
+                 points="280,650 480,500 640,420 700,580 540,650 380,700" />
+
+        <!-- Side vent (the secondary eruption point partway up the right flank) -->
+        <ellipse class="drop-target" data-target="side-vent"
+                 cx="1080" cy="430" rx="80" ry="60" />
+
+        <!-- Bedrock layers (the horizontal rock strata beneath the volcano).
+             Target the left side where the layers are most visible without the magma. -->
+        <rect class="drop-target" data-target="bedrock-layers"
+              x="60" y="720" width="540" height="220" />
+
+        <!-- Group for placed labels rendered as text -->
+        <g id="placed-labels"></g>
+      </svg>
+
+      <div class="feedback" id="feedback"></div>
+    </section>
+
+    <!-- LABEL BAY -->
+    <section class="bay">
+      <div class="bay-title">Drag a label onto the diagram</div>
+      <div class="bay-grid" id="bay">
+        <!-- labels injected by JS -->
+      </div>
+    </section>
+
+    <div class="completion" id="completion">
+      All seven labels placed correctly. Nicely done.
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------------------------------------------------
+    // Label data
+    //
+    // Each label has:
+    //   id          — matches data-target on the SVG drop zone
+    //   text        — what the student sees in the bay and on the diagram
+    //   labelX/Y    — coordinates (in viewBox space) where the placed label
+    //                 sits once dropped correctly
+    //   anchorX/Y   — point on the diagram the leader line points to
+    //                 (centre of the volcano part)
+    //   hint        — gentle nudge shown if the student drops it wrongly
+    // -----------------------------------------------------------------------
+    const LABELS = [
+      {
+        id: 'ash-cloud',
+        text: 'Ash cloud',
+        labelX: 1280, labelY: 90,
+        anchorX: 900, anchorY: 120,
+        hint: 'Look for the dark grey plume rising into the sky.'
+      },
+      {
+        id: 'crater',
+        text: 'Crater',
+        labelX: 1280, labelY: 260,
+        anchorX: 820, anchorY: 280,
+        hint: 'Look for the opening at the very top of the volcano.'
+      },
+      {
+        id: 'main-vent',
+        text: 'Main vent',
+        labelX: 200, labelY: 460,
+        anchorX: 815, anchorY: 530,
+        hint: 'Look for the central pipe connecting the magma to the surface.'
+      },
+      {
+        id: 'magma-chamber',
+        text: 'Magma chamber',
+        labelX: 1300, labelY: 880,
+        anchorX: 780, anchorY: 900,
+        hint: 'Look for the molten reservoir at the very bottom.'
+      },
+      {
+        id: 'layers',
+        text: 'Layers of lava and ash',
+        labelX: 230, labelY: 320,
+        anchorX: 480, anchorY: 560,
+        hint: 'Look at the diagonal bands inside the cone.'
+      },
+      {
+        id: 'side-vent',
+        text: 'Side vent',
+        labelX: 1320, labelY: 430,
+        anchorX: 1080, anchorY: 430,
+        hint: 'Look for a smaller eruption opening on the side of the cone.'
+      },
+      {
+        id: 'bedrock-layers',
+        text: 'Bedrock layers',
+        labelX: 200, labelY: 950,
+        anchorX: 320, anchorY: 820,
+        hint: 'Look at the flat rock layers beneath the volcano.'
+      },
+    ];
+
+    const placed = new Set();
+
+    const bayEl = document.getElementById('bay');
+    const feedbackEl = document.getElementById('feedback');
+    const scoreCorrectEl = document.getElementById('score-correct');
+    const scoreTotalEl = document.getElementById('score-total');
+    const completionEl = document.getElementById('completion');
+    const resetBtn = document.getElementById('reset-btn');
+    const svg = document.querySelector('svg.diagram');
+    const placedLabelsGroup = document.getElementById('placed-labels');
+
+    scoreTotalEl.textContent = LABELS.length;
+
+    function buildBay() {
+      bayEl.innerHTML = '';
+      const shuffled = [...LABELS].sort(() => Math.random() - 0.5);
+      for (const lbl of shuffled) {
+        const el = document.createElement('div');
+        el.className = 'label';
+        el.dataset.labelId = lbl.id;
+        el.textContent = lbl.text;
+        if (placed.has(lbl.id)) el.classList.add('is-placed');
+        attachDragHandlers(el);
+        bayEl.appendChild(el);
+      }
+    }
+
+    function attachDragHandlers(el) {
+      let dragState = null;
+
+      el.addEventListener('pointerdown', (e) => {
+        if (el.classList.contains('is-placed')) return;
+        e.preventDefault();
+        const rect = el.getBoundingClientRect();
+        dragState = {
+          offsetX: e.clientX - rect.left,
+          offsetY: e.clientY - rect.top,
+        };
+        el.setPointerCapture(e.pointerId);
+        el.classList.add('is-dragging');
+        el.style.left = rect.left + 'px';
+        el.style.top = rect.top + 'px';
+      });
+
+      el.addEventListener('pointermove', (e) => {
+        if (!dragState) return;
+        const x = e.clientX - dragState.offsetX;
+        const y = e.clientY - dragState.offsetY;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        highlightDropTargetUnderPointer(e.clientX, e.clientY);
+      });
+
+      el.addEventListener('pointerup', (e) => {
+        if (!dragState) return;
+        dragState = null;
+        el.classList.remove('is-dragging');
+        el.releasePointerCapture(e.pointerId);
+        clearAllHoverHighlights();
+
+        const target = dropTargetUnderPointer(e.clientX, e.clientY);
+        const labelId = el.dataset.labelId;
+
+        if (target && target.dataset.target === labelId) {
+          placeLabel(labelId);
+          el.style.left = '';
+          el.style.top = '';
+          el.classList.add('is-placed');
+        } else {
+          el.style.left = '';
+          el.style.top = '';
+          el.classList.add('is-shake');
+          setTimeout(() => el.classList.remove('is-shake'), 500);
+          showFeedback(getLabelDef(labelId).hint, 'wrong');
+        }
+      });
+    }
+
+    function dropTargetUnderPointer(clientX, clientY) {
+      const targets = svg.querySelectorAll('.drop-target');
+      for (const t of targets) {
+        const r = t.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right &&
+            clientY >= r.top && clientY <= r.bottom) {
+          return t;
+        }
+      }
+      return null;
+    }
+
+    function highlightDropTargetUnderPointer(clientX, clientY) {
+      clearAllHoverHighlights();
+      const t = dropTargetUnderPointer(clientX, clientY);
+      if (t && !t.classList.contains('is-correct-placed')) {
+        t.classList.add('is-hover');
+      }
+    }
+
+    function clearAllHoverHighlights() {
+      svg.querySelectorAll('.drop-target.is-hover')
+         .forEach(t => t.classList.remove('is-hover'));
+    }
+
+    // -----------------------------------------------------------------------
+    // Place a label correctly. Renders:
+    //   - a leader line from the anchor point on the volcano to the label
+    //   - a white rounded rectangle behind the label text for legibility
+    //   - the label text itself in dark grey, bold, with green border
+    // -----------------------------------------------------------------------
+    function placeLabel(labelId) {
+      if (placed.has(labelId)) return;
+      placed.add(labelId);
+
+      const def = getLabelDef(labelId);
+
+      const target = svg.querySelector(`.drop-target[data-target="${labelId}"]`);
+      if (target) target.classList.add('is-correct-placed');
+
+      const NS = 'http://www.w3.org/2000/svg';
+      const g = document.createElementNS(NS, 'g');
+      g.classList.add('placed-label');
+
+      // Estimate text width for the rounded background rect
+      const charWidth = 14;
+      const padding = 24;
+      const textWidth = def.text.length * charWidth + padding * 2;
+      const textHeight = 48;
+
+      // Leader line from anchor to centre of label
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', def.anchorX);
+      line.setAttribute('y1', def.anchorY);
+      line.setAttribute('x2', def.labelX);
+      line.setAttribute('y2', def.labelY);
+      g.appendChild(line);
+
+      // Background rect for the text
+      const rect = document.createElementNS(NS, 'rect');
+      rect.setAttribute('x', def.labelX - textWidth / 2);
+      rect.setAttribute('y', def.labelY - textHeight / 2);
+      rect.setAttribute('width', textWidth);
+      rect.setAttribute('height', textHeight);
+      g.appendChild(rect);
+
+      // Anchor dot at the volcano part
+      const dot = document.createElementNS(NS, 'circle');
+      dot.setAttribute('cx', def.anchorX);
+      dot.setAttribute('cy', def.anchorY);
+      dot.setAttribute('r', 6);
+      dot.setAttribute('fill', 'var(--correct)');
+      g.appendChild(dot);
+
+      // Text itself
+      const txt = document.createElementNS(NS, 'text');
+      txt.setAttribute('x', def.labelX);
+      txt.setAttribute('y', def.labelY);
+      txt.textContent = def.text;
+      g.appendChild(txt);
+
+      placedLabelsGroup.appendChild(g);
+
+      scoreCorrectEl.textContent = placed.size;
+      showFeedback(`Correct — that's the ${def.text.toLowerCase()}.`, 'correct');
+
+      if (placed.size === LABELS.length) {
+        completionEl.classList.add('is-visible');
+        feedbackEl.textContent = '';
+        feedbackEl.className = 'feedback';
+      }
+    }
+
+    function getLabelDef(id) {
+      return LABELS.find(l => l.id === id);
+    }
+
+    function showFeedback(msg, kind) {
+      feedbackEl.textContent = msg;
+      feedbackEl.className = 'feedback' + (kind === 'correct' ? ' is-correct'
+                                          : kind === 'wrong' ? ' is-wrong' : '');
+      if (kind === 'wrong') {
+        setTimeout(() => {
+          if (feedbackEl.textContent === msg) {
+            feedbackEl.textContent = '';
+            feedbackEl.className = 'feedback';
+          }
+        }, 3500);
+      }
+    }
+
+    resetBtn.addEventListener('click', () => {
+      placed.clear();
+      scoreCorrectEl.textContent = '0';
+      completionEl.classList.remove('is-visible');
+      feedbackEl.textContent = '';
+      feedbackEl.className = 'feedback';
+      svg.querySelectorAll('.drop-target.is-correct-placed')
+         .forEach(t => t.classList.remove('is-correct-placed'));
+      placedLabelsGroup.innerHTML = '';
+      buildBay();
+    });
+
+    buildBay();
+  </script>
+</body>
+</html>
