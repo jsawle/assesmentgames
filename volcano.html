@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Test your knowledge of volcanos</title>
+  <title>Label the Volcano</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -34,7 +34,6 @@
       padding: 24px 20px 60px;
     }
 
-    /* HEADER */
     .header {
       display: flex;
       justify-content: space-between;
@@ -88,7 +87,6 @@
       border-color: #b8c0cc;
     }
 
-    /* PLAY AREA — bay on the left, diagram on the right */
     .play-area {
       display: grid;
       grid-template-columns: 240px 1fr;
@@ -96,7 +94,6 @@
       align-items: flex-start;
     }
 
-    /* DIAGRAM */
     .diagram-wrap {
       background: var(--surface);
       border: 1px solid var(--line);
@@ -132,7 +129,6 @@
       stroke-dasharray: none;
     }
 
-    /* Placed labels rendered on the SVG */
     .placed-label {
       pointer-events: none;
     }
@@ -155,7 +151,6 @@
       stroke-width: 2.5;
     }
 
-    /* LABEL BAY — left column on wide screens, vertical stack */
     .bay {
       background: var(--surface);
       border: 1px solid var(--line);
@@ -238,7 +233,6 @@
     }
     .completion.is-visible { display: block; }
 
-    /* Narrow screens — bay falls back to below the image, horizontal layout */
     @media (max-width: 900px) {
       .play-area {
         grid-template-columns: 1fr;
@@ -283,7 +277,6 @@
     </header>
 
     <div class="play-area">
-      <!-- LABEL BAY (left column on wide screens) -->
       <section class="bay">
         <div class="bay-title">Drag a label</div>
         <div class="bay-grid" id="bay">
@@ -291,7 +284,6 @@
         </div>
       </section>
 
-      <!-- DIAGRAM -->
       <section class="diagram-wrap">
         <svg class="diagram" viewBox="0 0 1536 1024" xmlns="http://www.w3.org/2000/svg">
 
@@ -300,46 +292,45 @@
                  x="0" y="0" width="1536" height="1024"
                  preserveAspectRatio="xMidYMid slice" />
 
-          <!-- DROP TARGETS (tuned to match the actual illustration).
+          <!-- DROP TARGETS — fine-tuned to the illustration.
                All coordinates in 1536x1024 viewBox space. -->
 
           <!-- Ash cloud — the dark grey plume top-centre -->
           <ellipse class="drop-target" data-target="ash-cloud"
                    cx="900" cy="100" rx="260" ry="80" />
 
-          <!-- Crater — the summit notch at the top of the cone -->
+          <!-- Crater — moved up and to the left to sit on the actual summit
+               notch. Was cx=820 cy=265; now cx=720 cy=215 -->
           <ellipse class="drop-target" data-target="crater"
-                   cx="820" cy="265" rx="80" ry="35" />
+                   cx="720" cy="215" rx="65" ry="32" />
 
-          <!-- Main vent — the central red conduit, narrow column down the cone.
-               Tightened to avoid overlap with crater above and magma chamber below. -->
+          <!-- Main vent — shifted LEFT (the central red conduit runs through
+               x≈720, not x≈820). Was x=775 width=90; now x=685 width=80.
+               Slightly raised top to follow the conduit from below the crater. -->
           <rect class="drop-target" data-target="main-vent"
-                x="775" y="320" width="90" height="380" />
+                x="685" y="280" width="80" height="420" />
 
-          <!-- Magma chamber — the bulbous reservoir at the bottom.
-               Tightened to centre under the volcano so the right edge
-               doesn't clip the right cone flank. -->
+          <!-- Magma chamber — moved UP to cover the central part of the
+               chamber where the orange is brightest. Was cy=900; now cy=860.
+               Tightened ry slightly. -->
           <ellipse class="drop-target" data-target="magma-chamber"
-                   cx="780" cy="900" rx="240" ry="65" />
+                   cx="760" cy="860" rx="240" ry="60" />
 
-          <!-- Layers of lava and ash — left flank, the diagonal banded area.
-               Tightened to a smaller polygon clearly on the layered region,
-               not overlapping the main vent or magma chamber. -->
+          <!-- Layers of lava and ash — left flank polygon, kept as before -->
           <polygon class="drop-target" data-target="layers"
                    points="350,680 480,560 600,440 660,520 540,640 400,720" />
 
-          <!-- Side vent — the secondary eruption point on the right flank.
-               Slightly larger ellipse for forgiveness. -->
+          <!-- Side vent — secondary eruption point on the right flank -->
           <ellipse class="drop-target" data-target="side-vent"
                    cx="1080" cy="430" rx="100" ry="75" />
 
-          <!-- Bedrock layers — horizontal strata below the volcano base.
-               Confined to the area genuinely showing the rock layers,
-               below the green grass / volcano-base line. -->
+          <!-- Bedrock layers — moved UP to include the two visible rock
+               strata above the previous zone. Was y=780 h=180 (one layer);
+               now y=680 h=240 (covers the brown layer at top, the grey
+               layer below it, and the lower brown layer). -->
           <rect class="drop-target" data-target="bedrock-layers"
-                x="80" y="780" width="500" height="180" />
+                x="80" y="680" width="500" height="240" />
 
-          <!-- Group for placed labels -->
           <g id="placed-labels"></g>
         </svg>
 
@@ -354,7 +345,7 @@
 
   <script>
     // -----------------------------------------------------------------------
-    // Label data
+    // Label data — anchor points updated to match the new drop-target centres
     // -----------------------------------------------------------------------
     const LABELS = [
       {
@@ -367,22 +358,22 @@
       {
         id: 'crater',
         text: 'Crater',
-        labelX: 1280, labelY: 250,
-        anchorX: 820, anchorY: 265,
+        labelX: 1280, labelY: 215,
+        anchorX: 720, anchorY: 215,
         hint: 'Look for the opening at the very top of the volcano.'
       },
       {
         id: 'main-vent',
         text: 'Main vent',
         labelX: 200, labelY: 470,
-        anchorX: 820, anchorY: 510,
+        anchorX: 720, anchorY: 490,
         hint: 'Look for the central pipe connecting the magma to the surface.'
       },
       {
         id: 'magma-chamber',
         text: 'Magma chamber',
-        labelX: 1300, labelY: 880,
-        anchorX: 780, anchorY: 900,
+        labelX: 1300, labelY: 860,
+        anchorX: 760, anchorY: 860,
         hint: 'Look for the molten reservoir at the very bottom.'
       },
       {
@@ -403,7 +394,7 @@
         id: 'bedrock-layers',
         text: 'Bedrock layers',
         labelX: 200, labelY: 970,
-        anchorX: 320, anchorY: 850,
+        anchorX: 320, anchorY: 800,
         hint: 'Look at the flat rock layers beneath the volcano.'
       },
     ];
@@ -529,7 +520,6 @@
       const textWidth = def.text.length * charWidth + padding * 2;
       const textHeight = 48;
 
-      // Leader line from anchor to label
       const line = document.createElementNS(NS, 'line');
       line.setAttribute('x1', def.anchorX);
       line.setAttribute('y1', def.anchorY);
@@ -537,7 +527,6 @@
       line.setAttribute('y2', def.labelY);
       g.appendChild(line);
 
-      // Background rect
       const rect = document.createElementNS(NS, 'rect');
       rect.setAttribute('x', def.labelX - textWidth / 2);
       rect.setAttribute('y', def.labelY - textHeight / 2);
@@ -545,7 +534,6 @@
       rect.setAttribute('height', textHeight);
       g.appendChild(rect);
 
-      // Anchor dot
       const dot = document.createElementNS(NS, 'circle');
       dot.setAttribute('cx', def.anchorX);
       dot.setAttribute('cy', def.anchorY);
@@ -553,7 +541,6 @@
       dot.setAttribute('fill', '#14a058');
       g.appendChild(dot);
 
-      // Text
       const txt = document.createElementNS(NS, 'text');
       txt.setAttribute('x', def.labelX);
       txt.setAttribute('y', def.labelY);
