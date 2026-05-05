@@ -299,16 +299,15 @@
           <ellipse class="drop-target" data-target="ash-cloud"
                    cx="900" cy="100" rx="260" ry="80" />
 
-          <!-- Crater — moved up and to the left to sit on the actual summit
-               notch. Was cx=820 cy=265; now cx=720 cy=215 -->
+          <!-- Crater — sits on the actual summit notch. Was cx=720;
+               nudged right to cx=755 to centre over the notch. -->
           <ellipse class="drop-target" data-target="crater"
-                   cx="720" cy="215" rx="65" ry="32" />
+                   cx="755" cy="215" rx="65" ry="32" />
 
-          <!-- Main vent — shifted LEFT (the central red conduit runs through
-               x≈720, not x≈820). Was x=775 width=90; now x=685 width=80.
-               Slightly raised top to follow the conduit from below the crater. -->
+          <!-- Main vent — centred on the vertical conduit. Was x=685;
+               nudged right to x=720 to sit over the bright orange column. -->
           <rect class="drop-target" data-target="main-vent"
-                x="685" y="280" width="80" height="420" />
+                x="720" y="280" width="80" height="420" />
 
           <!-- Magma chamber — moved UP to cover the central part of the
                chamber where the orange is brightest. Was cy=900; now cy=860.
@@ -359,14 +358,14 @@
         id: 'crater',
         text: 'Crater',
         labelX: 1280, labelY: 215,
-        anchorX: 720, anchorY: 215,
+        anchorX: 755, anchorY: 215,
         hint: 'Look for the opening at the very top of the volcano.'
       },
       {
         id: 'main-vent',
         text: 'Main vent',
         labelX: 200, labelY: 470,
-        anchorX: 720, anchorY: 490,
+        anchorX: 760, anchorY: 490,
         hint: 'Look for the central pipe connecting the magma to the surface.'
       },
       {
